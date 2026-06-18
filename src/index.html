@@ -5,6 +5,12 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>MASKAR Perfumes Manager</title>
   <link rel="stylesheet" href="index.css">
+  <script>
+    (function() {
+      const theme = localStorage.getItem('theme') || 'dark';
+      document.documentElement.setAttribute('data-theme', theme);
+    })();
+  </script>
 </head>
 <body>
   <!-- Custom Titlebar -->
@@ -14,6 +20,7 @@
       MASKAR PERFUMES
     </div>
     <div class="titlebar-controls">
+      <button class="titlebar-btn" id="btnThemeToggle" title="Toggle Theme" style="-webkit-app-region: no-drag;"></button>
       <button class="titlebar-btn" id="btnMin" title="Minimize"><svg width="12" height="12" viewBox="0 0 12 12"><line x1="1" y1="6" x2="11" y2="6" stroke="currentColor" stroke-width="1.5"/></svg></button>
       <button class="titlebar-btn" id="btnMax" title="Maximize"><svg width="12" height="12" viewBox="0 0 12 12"><rect x="1.5" y="1.5" width="9" height="9" rx="1" stroke="currentColor" stroke-width="1.5" fill="none"/></svg></button>
       <button class="titlebar-btn close" id="btnClose" title="Close"><svg width="12" height="12" viewBox="0 0 12 12"><line x1="2" y1="2" x2="10" y2="10" stroke="currentColor" stroke-width="1.5"/><line x1="10" y1="2" x2="2" y2="10" stroke="currentColor" stroke-width="1.5"/></svg></button>

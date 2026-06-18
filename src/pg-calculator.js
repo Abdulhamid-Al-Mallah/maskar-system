@@ -1,5 +1,6 @@
 /* pg-calculator.js */
 let _calcTab = 'materials';
+let _matPage = 1;
 
 window.render_calculator = async function() {
   APP.materials = await window.api.getMaterials() || [];
@@ -36,6 +37,9 @@ window.render_calculator = async function() {
 
 function renderMaterialsTab() {
   const el = document.getElementById('calcContent');
+  const pgData = paginate(APP.materials, _matPage);
+  _matPage = pgData.page;
+
   el.innerHTML = `
     <div class="card">
       <div class="flex-between mb-16">
@@ -46,7 +50,7 @@ function renderMaterialsTab() {
         <table class="data-table"><thead><tr>
           <th>${t('name')}</th><th>${t('category')}</th><th>${t('unitType','calc')}</th><th>${t('unitCost','calc')}</th><th>${t('supplier','calc')}</th><th class="text-right">${t('actions')}</th>
         </tr></thead><tbody>
-        ${APP.materials.length ? APP.materials.map(m => `<tr>
+        ${pgData.items.length ? pgData.items.map(m => `<tr>
           <td class="fw-700">${m.name}</td><td>${formatCategory(m.category)}</td><td>${m.unitType||'-'}</td>
           <td class="text-gold">$${(m.unitCost||0).toFixed(3)}</td><td class="text-muted">${m.supplier||'-'}</td>
           <td><div class="table-actions">
@@ -56,7 +60,11 @@ function renderMaterialsTab() {
         </tr>`).join('') : `<tr><td colspan="6" class="empty-state">${t('noData')}</td></tr>`}
         </tbody></table>
       </div>
+      ${renderPagination(pgData)}
     </div>`;
+
+  // Pagination
+  el.querySelectorAll('.page-btn[data-p]').forEach(b => b.addEventListener('click', () => { _matPage = parseInt(b.dataset.p); renderMaterialsTab(); }));
 }
 
 let _formulaProductId = '';

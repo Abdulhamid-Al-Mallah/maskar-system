@@ -8,6 +8,7 @@ window.render_inventory = async function() {
   const thresh = parseInt(APP.settings.lowStockThreshold) || 5;
   const sorted = [...APP.products].sort((a,b) => (a.stock||0) - (b.stock||0));
   const pgData = paginate(sorted, _invPage);
+  _invPage = pgData.page;
 
   pg.innerHTML = `
     <div class="page-header">

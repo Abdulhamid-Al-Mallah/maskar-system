@@ -14,6 +14,7 @@ window.render_products = async function() {
   });
 
   const pgData = paginate(filtered, _prodPage);
+  _prodPage = pgData.page;
   const cur = APP.settings.defaultCurrency || 'USD';
 
   pg.innerHTML = `

@@ -39,3 +39,5 @@ ehthumbs.db
 .env.development
 .env.test
 .env.production
+.env.keys
+.env.vault

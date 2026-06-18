@@ -7,6 +7,7 @@ window.render_accounting = async function() {
   const modals = document.getElementById('modalContainer');
   const cur = APP.settings.defaultCurrency || 'USD';
   const pgData = paginate(APP.expenses.sort((a,b) => new Date(b.date||b.createdAt||0) - new Date(a.date||a.createdAt||0)), _expPage);
+  _expPage = pgData.page;
 
   // P&L
   const delivered = APP.orders.filter(o => o.status === 'delivered');

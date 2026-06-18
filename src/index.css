@@ -21,6 +21,72 @@
   --border-gold: rgba(212,168,67,0.25);
   --sidebar-width: 240px;
   --titlebar-height: 40px;
+
+  /* Badges - Dark Mode defaults */
+  --badge-pending-bg: rgba(234, 179, 8, 0.15);
+  --badge-pending-text: #fbbf24;
+  --badge-pending-border: rgba(234, 179, 8, 0.3);
+
+  --badge-processing-bg: rgba(59, 130, 246, 0.15);
+  --badge-processing-text: #60a5fa;
+  --badge-processing-border: rgba(59, 130, 246, 0.3);
+
+  --badge-shipped-bg: rgba(139, 92, 246, 0.15);
+  --badge-shipped-text: #a78bfa;
+  --badge-shipped-border: rgba(139, 92, 246, 0.3);
+
+  --badge-delivered-bg: rgba(34, 197, 94, 0.15);
+  --badge-delivered-text: #4ade80;
+  --badge-delivered-border: rgba(34, 197, 94, 0.3);
+
+  --badge-cancelled-bg: rgba(107, 114, 128, 0.15);
+  --badge-cancelled-text: #9ca3af;
+  --badge-cancelled-border: rgba(107, 114, 128, 0.3);
+
+  --badge-low-bg: rgba(239, 68, 68, 0.15);
+  --badge-low-text: #f87171;
+  --badge-low-border: rgba(239, 68, 68, 0.3);
+}
+
+[data-theme="light"] {
+  --bg-primary: #f5f5f7;
+  --bg-secondary: #ffffff;
+  --bg-tertiary: #f0f0f2;
+  --bg-card: rgba(255, 255, 255, 0.85);
+  --gold: #b88d2f;
+  --gold-hover: #a17721;
+  --gold-muted: rgba(184, 141, 47, 0.12);
+  --gold-glow: rgba(184, 141, 47, 0.2);
+  --text-primary: #1c1c1e;
+  --text-secondary: #48484a;
+  --text-muted: #8e8e93;
+  --border: rgba(0, 0, 0, 0.08);
+  --border-gold: rgba(184, 141, 47, 0.25);
+
+  /* Badges - Light Mode */
+  --badge-pending-bg: rgba(180, 83, 9, 0.1);
+  --badge-pending-text: #b45309;
+  --badge-pending-border: rgba(180, 83, 9, 0.2);
+
+  --badge-processing-bg: rgba(29, 78, 216, 0.08);
+  --badge-processing-text: #1d4ed8;
+  --badge-processing-border: rgba(29, 78, 216, 0.2);
+
+  --badge-shipped-bg: rgba(109, 40, 217, 0.08);
+  --badge-shipped-text: #6d28d9;
+  --badge-shipped-border: rgba(109, 40, 217, 0.2);
+
+  --badge-delivered-bg: rgba(21, 128, 61, 0.08);
+  --badge-delivered-text: #15803d;
+  --badge-delivered-border: rgba(21, 128, 61, 0.2);
+
+  --badge-cancelled-bg: rgba(75, 85, 99, 0.1);
+  --badge-cancelled-text: #4b5563;
+  --badge-cancelled-border: rgba(75, 85, 99, 0.2);
+
+  --badge-low-bg: rgba(185, 28, 28, 0.08);
+  --badge-low-text: #b91c1c;
+  --badge-low-border: rgba(185, 28, 28, 0.2);
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -350,16 +416,16 @@ textarea { resize: vertical; min-height: 70px; }
   font-weight: 700;
   letter-spacing: 0.3px;
 }
-.badge-pending { background: rgba(234,179,8,0.15); color: #fbbf24; border: 1px solid rgba(234,179,8,0.3); }
-.badge-processing { background: rgba(59,130,246,0.15); color: #60a5fa; border: 1px solid rgba(59,130,246,0.3); }
-.badge-shipped { background: rgba(139,92,246,0.15); color: #a78bfa; border: 1px solid rgba(139,92,246,0.3); }
-.badge-delivered { background: rgba(34,197,94,0.15); color: #4ade80; border: 1px solid rgba(34,197,94,0.3); }
-.badge-cancelled { background: rgba(107,114,128,0.15); color: #9ca3af; border: 1px solid rgba(107,114,128,0.3); }
-.badge-cash { background: rgba(34,197,94,0.15); color: #4ade80; border: 1px solid rgba(34,197,94,0.3); }
-.badge-credit, .badge-credit_card { background: rgba(59,130,246,0.15); color: #60a5fa; border: 1px solid rgba(59,130,246,0.3); }
-.badge-transfer { background: rgba(139,92,246,0.15); color: #a78bfa; border: 1px solid rgba(139,92,246,0.3); }
-.badge-low { background: rgba(239,68,68,0.15); color: #f87171; border: 1px solid rgba(239,68,68,0.3); }
-.badge-ok { background: rgba(34,197,94,0.15); color: #4ade80; border: 1px solid rgba(34,197,94,0.3); }
+.badge-pending { background: var(--badge-pending-bg); color: var(--badge-pending-text); border: 1px solid var(--badge-pending-border); }
+.badge-processing { background: var(--badge-processing-bg); color: var(--badge-processing-text); border: 1px solid var(--badge-processing-border); }
+.badge-shipped { background: var(--badge-shipped-bg); color: var(--badge-shipped-text); border: 1px solid var(--badge-shipped-border); }
+.badge-delivered { background: var(--badge-delivered-bg); color: var(--badge-delivered-text); border: 1px solid var(--badge-delivered-border); }
+.badge-cancelled { background: var(--badge-cancelled-bg); color: var(--badge-cancelled-text); border: 1px solid var(--badge-cancelled-border); }
+.badge-cash { background: var(--badge-delivered-bg); color: var(--badge-delivered-text); border: 1px solid var(--badge-delivered-border); }
+.badge-credit, .badge-credit_card { background: var(--badge-processing-bg); color: var(--badge-processing-text); border: 1px solid var(--badge-processing-border); }
+.badge-transfer { background: var(--badge-shipped-bg); color: var(--badge-shipped-text); border: 1px solid var(--badge-shipped-border); }
+.badge-low { background: var(--badge-low-bg); color: var(--badge-low-text); border: 1px solid var(--badge-low-border); }
+.badge-ok { background: var(--badge-delivered-bg); color: var(--badge-delivered-text); border: 1px solid var(--badge-delivered-border); }
 
 /* ─── Modals ─── */
 .modal-overlay {

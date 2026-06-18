@@ -1,5 +1,6 @@
 /* pg-customers.js */
 let _custPage = 1, _custSearch = '';
+let _custOrdersPage = 1, _custOrdersCustId = '';
 
 window.render_customers = async function() {
   APP.customers = await window.api.getCustomers() || [];
@@ -14,6 +15,7 @@ window.render_customers = async function() {
     return (c.name||'').toLowerCase().includes(q) || (c.phone||'').includes(q) || (c.email||'').toLowerCase().includes(q);
   });
   const pgData = paginate(filtered, _custPage);
+  _custPage = pgData.page;
 
   pg.innerHTML = `
     <div class="page-header">
@@ -125,14 +127,27 @@ window.deleteCust = function(id) {
 };
 
 window.showCustOrders = function(custId) {
+  if (_custOrdersCustId !== custId) {
+    _custOrdersCustId = custId;
+    _custOrdersPage = 1;
+  }
   const cur = APP.settings.defaultCurrency || 'USD';
   const orders = APP.orders.filter(o => o.customerId === custId);
   const el = document.getElementById('custOrdersList');
   if (!orders.length) { el.innerHTML = `<p class="empty-state">${t('noData')}</p>`; }
   else {
+    const pgData = paginate(orders, _custOrdersPage);
+    _custOrdersPage = pgData.page;
+
     el.innerHTML = `<table class="data-table"><thead><tr><th>#</th><th>${t('date')}</th><th>${t('total')}</th><th>${t('status')}</th></tr></thead><tbody>
-      ${orders.map(o => `<tr><td class="fw-700">${o.orderNumber||'-'}</td><td class="text-muted">${fmtDate(o.createdAt)}</td><td class="text-gold">${fmt(o.total, 'USD')}</td><td><span class="badge badge-${o.status}">${o.status}</span></td></tr>`).join('')}
-    </tbody></table>`;
+      ${pgData.items.map(o => `<tr><td class="fw-700">${o.orderNumber||'-'}</td><td class="text-muted">${fmtDate(o.createdAt)}</td><td class="text-gold">${fmt(o.total, 'USD')}</td><td><span class="badge badge-${o.status}">${o.status}</span></td></tr>`).join('')}
+    </tbody></table>
+    ${renderPagination(pgData)}`;
+
+    el.querySelectorAll('.page-btn[data-p]').forEach(b => b.addEventListener('click', () => { 
+      _custOrdersPage = parseInt(b.dataset.p); 
+      showCustOrders(custId); 
+    }));
   }
   openModal('custOrdersModal');
 };
