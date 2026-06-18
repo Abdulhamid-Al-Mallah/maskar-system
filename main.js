@@ -352,7 +352,7 @@ ipcMain.handle('db:products:delete', async (_, id) => {
     if (orderCount > 0) {
       const orders = await db.collection('orders').find({ "items.productId": id }).toArray();
       const orderNums = orders.map(o => o.orderNumber).join(', ');
-      return { success: false, error: `Cannot delete product. It is used in order(s): ${orderNums}` };
+      return { success: false, error: `Product linked to order(s): ${orderNums}` };
     }
     await db.collection('products').deleteOne({ id });
     await db.collection('formulas').deleteMany({ productId: id });
@@ -421,7 +421,7 @@ ipcMain.handle('db:orders:create', async (_, order) => {
           const available = prod.stock || 0;
           const requested = item.quantity || 0;
           if (requested > available) {
-            return { success: false, error: `Insufficient stock for product "${prod.nameEn || prod.nameAr || 'Product'}". Available: ${available}, Requested: ${requested}.` };
+            return { success: false, error: `Low stock: Only ${available} of "${prod.nameEn || prod.nameAr || 'Product'}" left (needed ${requested})` };
           }
         }
       }
@@ -481,7 +481,7 @@ ipcMain.handle('db:orders:update', async (_, updated) => {
           const available = simulatedStock[item.productId].stock;
           const requested = item.quantity || 0;
           if (requested > available) {
-            return { success: false, error: `Insufficient stock for product "${simulatedStock[item.productId].name}". Available: ${available}, Requested: ${requested}.` };
+            return { success: false, error: `Low stock: Only ${available} of "${simulatedStock[item.productId].name}" left (needed ${requested})` };
           }
           simulatedStock[item.productId].stock -= requested;
         }
@@ -578,7 +578,7 @@ ipcMain.handle('db:customers:delete', async (_, id) => {
     if (orderCount > 0) {
       const orders = await db.collection('orders').find({ customerId: id }).toArray();
       const orderNums = orders.map(o => o.orderNumber).join(', ');
-      return { success: false, error: `Cannot delete customer. They have associated order(s): ${orderNums}` };
+      return { success: false, error: `Customer linked to order(s): ${orderNums}` };
     }
     await db.collection('customers').deleteOne({ id });
     return { success: true };
@@ -640,7 +640,26 @@ ipcMain.handle('db:materials:save', async (_, material) => {
   checkAuth();
   try {
     if (material.id) {
+      const oldMat = await db.collection('materials').findOne({ id: material.id });
       await db.collection('materials').replaceOne({ id: material.id }, material, { upsert: true });
+      if (oldMat && oldMat.unitCost !== material.unitCost) {
+        // Update formulas snapshot
+        await db.collection('formulas').updateMany(
+          { materialId: material.id },
+          { $set: { unitCostSnapshot: material.unitCost } }
+        );
+        // Recalculate and update COGS of affected products
+        const formulas = await db.collection('formulas').find({ materialId: material.id }).toArray();
+        const productIds = [...new Set(formulas.map(f => f.productId))];
+        for (const pId of productIds) {
+          const prodFormulas = await db.collection('formulas').find({ productId: pId }).toArray();
+          const newCOGS = prodFormulas.reduce((s, r) => s + (parseFloat(r.quantity) || 0) * (parseFloat(r.unitCostSnapshot) || 0), 0);
+          await db.collection('products').updateOne(
+            { id: pId },
+            { $set: { costOfGoodsSold: newCOGS } }
+          );
+        }
+      }
     } else {
       material.id = generateUniqueId();
       await db.collection('materials').insertOne(material);
@@ -660,7 +679,7 @@ ipcMain.handle('db:materials:delete', async (_, id) => {
       const productIds = [...new Set(formulas.map(f => f.productId))];
       const products = await db.collection('products').find({ id: { $in: productIds } }).toArray();
       const productNames = products.map(p => p.nameEn || p.nameAr || p.nameTr || 'Unnamed Product').join(', ');
-      return { success: false, error: `Cannot delete material. It is used in formula(s) of product(s): ${productNames}` };
+      return { success: false, error: `Material is used by product(s): ${productNames}` };
     }
     await db.collection('materials').deleteOne({ id });
     return { success: true };

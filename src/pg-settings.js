@@ -82,7 +82,7 @@ window.saveAllSettings = async function() {
   const tryRateInput = document.getElementById('stTryRate');
   const tryRateVal = parseFloat(tryRateInput.value);
   if (isNaN(tryRateVal) || tryRateVal <= 0) {
-    return showToast('Exchange rate must be a valid number greater than 0', 'error');
+    return showToast('TRY exchange rate must be > 0', 'error');
   }
 
   APP.settings.currencies = [
@@ -104,15 +104,15 @@ window.saveAllSettings = async function() {
 
   const res = await window.api.saveSettings(APP.settings);
   if (res.success) {
-    showToast('Settings saved. Recalculating product prices...');
+    showToast('Recalculating prices...');
     await window.recalculateAllProductPrices();
-    showToast('Settings and prices updated.');
+    showToast('Settings & prices updated');
   } else showToast(res.error, 'error');
 };
 
 window.exportBackup = async function() {
   const res = await window.api.exportData();
-  if (res.success) showToast('Backup exported to: ' + res.path);
+  if (res.success) showToast('Backup exported');
   else if (res.reason !== 'canceled') showToast(res.error || 'Failed', 'error');
 };
 

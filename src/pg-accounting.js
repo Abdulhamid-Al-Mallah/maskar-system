@@ -247,6 +247,8 @@ window.deleteExp = function(id) {
       showToast('Expense deleted');
       await window.recalculateAllProductPrices();
       await render_accounting();
+    } else {
+      showToast(res.error || 'Failed to delete expense', 'error');
     }
   });
 };

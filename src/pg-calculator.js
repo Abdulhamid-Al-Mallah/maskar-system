@@ -84,9 +84,30 @@ function renderMaterialsTab() {
   } else if (_matSortBy === 'name_desc') {
     filtered.sort((a, b) => (b.name || '').localeCompare(a.name || ''));
   } else if (_matSortBy === 'stock_asc') {
-    filtered.sort((a, b) => (a.stock || 0) - (b.stock || 0));
+    filtered.sort((a, b) => {
+      const aInf = a.trackStock === false;
+      const bInf = b.trackStock === false;
+      if (aInf && bInf) return 0;
+      if (aInf) return 1;
+      if (bInf) return -1;
+      const aStock = parseFloat(a.stock) || 0;
+      const bStock = parseFloat(b.stock) || 0;
+      return aStock - bStock;
+    });
   } else if (_matSortBy === 'stock_desc') {
-    filtered.sort((a, b) => (b.stock || 0) - (a.stock || 0));
+    filtered.sort((a, b) => {
+      const aInf = a.trackStock === false;
+      const bInf = b.trackStock === false;
+      if (aInf && bInf) return 0;
+      if (aInf) return 1;
+      if (bInf) return -1;
+      const aStock = parseFloat(a.stock) || 0;
+      const bStock = parseFloat(b.stock) || 0;
+      if (aStock === 0 && bStock === 0) return 0;
+      if (aStock === 0) return -1;
+      if (bStock === 0) return 1;
+      return bStock - aStock;
+    });
   } else if (_matSortBy === 'cost_asc') {
     filtered.sort((a, b) => (a.unitCost || 0) - (b.unitCost || 0));
   } else if (_matSortBy === 'cost_desc') {
@@ -415,7 +436,7 @@ window.saveFormulaClicked = async function() {
 
     const formRes = await window.api.saveFormulas(createdProd.id, _formulaRows);
     if (formRes.success) {
-      showToast('New product and formula saved. Recalculating prices...');
+      showToast('Product & formula saved');
       await window.recalculateAllProductPrices();
       _isNewFormulaMode = false;
       _formulaProductId = createdProd.id;
@@ -433,7 +454,7 @@ window.saveFormulaClicked = async function() {
         prod.costOfGoodsSold = totalCost;
         await window.api.updateProduct(prod);
       }
-      showToast('Formula saved & COGS updated. Recalculating prices...');
+      showToast('Formula saved');
       await window.recalculateAllProductPrices();
       render_calculator();
     } else {
@@ -483,14 +504,25 @@ window.saveMat = async function() {
   if (data.unitCost < 0) return showToast('Unit cost cannot be negative', 'error');
   if (track && data.stock < 0) return showToast('Stock cannot be negative', 'error');
   const res = await window.api.saveMaterial(data);
-  if (res.success) { closeModal('matModal'); showToast('Material saved'); render_calculator(); }
+  if (res.success) { 
+    closeModal('matModal'); 
+    showToast('Material saved'); 
+    await window.recalculateAllProductPrices();
+    render_calculator(); 
+  }
   else showToast(res.error, 'error');
 };
 
 window.deleteMat = function(id) {
-  confirmAction(t('confirm'), async () => {
+  const m = APP.materials.find(x => x.id === id);
+  confirmAction(`Delete "${m?.name || 'material'}"?`, async () => {
     const res = await window.api.deleteMaterial(id);
-    if (res.success) { showToast('Material deleted'); render_calculator(); }
+    if (res.success) { 
+      showToast('Material deleted'); 
+      render_calculator(); 
+    } else {
+      showToast(res.error || 'Failed to delete material', 'error');
+    }
   });
 };
 

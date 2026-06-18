@@ -188,7 +188,7 @@ function showToast(msg, type='success') {
   el.innerHTML = msg;
   container.appendChild(el);
   requestAnimationFrame(() => el.classList.add('show'));
-  setTimeout(() => { el.classList.remove('show'); setTimeout(() => el.remove(), 400); }, 3000);
+  setTimeout(() => { el.classList.remove('show'); setTimeout(() => el.remove(), 400); }, 5000);
 }
 
 // ── Modal ──

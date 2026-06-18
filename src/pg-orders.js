@@ -71,6 +71,7 @@ window.render_orders = async function () {
             <option value="delivered" ${_ordStatus === "delivered" ? "selected" : ""}>Delivered</option>
             <option value="cancelled" ${_ordStatus === "cancelled" ? "selected" : ""}>Cancelled</option>
           </select>
+        </div>
       </div>
       <div class="table-container">
         <table class="data-table"><thead><tr>
@@ -383,6 +384,8 @@ function updateOrderTotals() {
 
 window.saveOrder = async function () {
    const id = document.getElementById("omId").value;
+   const customerId = document.getElementById("omCust").value;
+   if (!customerId) return showToast("Please select a customer", "error");
    const validItems = _cart.filter((it) => it.productId);
    if (!validItems.length) return showToast("Add at least one product", "error");
    const sub = validItems.reduce((s, it) => s + (it.quantity || 0) * (it.price || 0), 0);
@@ -404,7 +407,7 @@ window.saveOrder = async function () {
          const allocatedQty = oldItem ? oldItem.quantity : 0;
          const totalAvailable = (prod.stock || 0) + allocatedQty;
          if (it.quantity > totalAvailable) {
-            return showToast(`Insufficient stock for ${getProductName(prod)}. Available: ${totalAvailable}, Requested: ${it.quantity}.`, "error");
+            return showToast(`Low stock: Only ${totalAvailable} of "${getProductName(prod)}" left (needed ${it.quantity})`, "error");
          }
       }
    }
