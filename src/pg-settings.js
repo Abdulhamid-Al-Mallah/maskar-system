@@ -56,6 +56,16 @@ window.render_settings = async function() {
         </div>
       </div>
 
+      <div class="settings-section">
+        <h3>📈 Profit Percentage</h3>
+        <div class="form-grid">
+          <div class="form-group">
+            <label>Default Profit Percentage (%)</label>
+            <input type="number" id="stProfitPct" min="0" step="0.1" value="${s.profitPercentage||0}">
+          </div>
+        </div>
+      </div>
+
       <button class="btn btn-gold" onclick="saveAllSettings()" style="margin-top:12px">${t('save')} ${t('settings','nav')}</button>
 
       <div class="settings-section" style="margin-top:32px">
@@ -86,6 +96,7 @@ window.saveAllSettings = async function() {
   APP.settings.shopAddress = document.getElementById('stShopAddr').value.trim();
   APP.settings.shippingFee = parseFloat(document.getElementById('stShipFee').value) || 0;
   APP.settings.lowStockThreshold = parseInt(document.getElementById('stLowThresh').value) || 5;
+  APP.settings.profitPercentage = parseFloat(document.getElementById('stProfitPct').value) || 0;
 
   // Cleanup old settings if any
   delete APP.settings.billLanguage;
@@ -93,7 +104,9 @@ window.saveAllSettings = async function() {
 
   const res = await window.api.saveSettings(APP.settings);
   if (res.success) {
-    showToast('Settings saved');
+    showToast('Settings saved. Recalculating product prices...');
+    await window.recalculateAllProductPrices();
+    showToast('Settings and prices updated.');
   } else showToast(res.error, 'error');
 };
 

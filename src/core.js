@@ -273,7 +273,114 @@ async function loadAllData() {
   APP.materials = await window.api.getMaterials() || [];
   APP.settings = await window.api.getSettings() || {};
   APP.lang = 'en';
+  if (typeof window.updateSystemAlerts === 'function') {
+    window.updateSystemAlerts();
+  }
 }
+
+window.updateSystemAlerts = function() {
+  const thresh = parseInt(APP.settings.lowStockThreshold) || 5;
+  const lowProd = (APP.products || []).filter(p => (p.stock || 0) <= thresh);
+  const lowMat = (APP.materials || []).filter(m => m.trackStock !== false && (m.stock || 0) <= thresh);
+  const totalLow = lowProd.length + lowMat.length;
+
+  // Sidebar badge for Inventory (low stock products)
+  const invBtn = document.querySelector('.nav-item[data-page="inventory"]');
+  if (invBtn) {
+    let badge = invBtn.querySelector('.nav-badge');
+    if (lowProd.length > 0) {
+      if (!badge) {
+        badge = document.createElement('span');
+        badge.className = 'nav-badge';
+        badge.style.cssText = 'background: var(--badge-low-bg); color: var(--badge-low-text); border: 1px solid var(--badge-low-border); border-radius: 10px; padding: 2px 6px; font-size: 0.72rem; margin-left: auto; font-weight: 700;';
+        invBtn.appendChild(badge);
+      }
+      badge.textContent = lowProd.length;
+    } else if (badge) {
+      badge.remove();
+    }
+  }
+
+  // Sidebar badge for Calculator (low stock materials)
+  const calcBtn = document.querySelector('.nav-item[data-page="calculator"]');
+  if (calcBtn) {
+    let badge = calcBtn.querySelector('.nav-badge');
+    if (lowMat.length > 0) {
+      if (!badge) {
+        badge = document.createElement('span');
+        badge.className = 'nav-badge';
+        badge.style.cssText = 'background: var(--badge-pending-bg); color: var(--badge-pending-text); border: 1px solid var(--badge-pending-border); border-radius: 10px; padding: 2px 6px; font-size: 0.72rem; margin-left: auto; font-weight: 700;';
+        calcBtn.appendChild(badge);
+      }
+      badge.textContent = lowMat.length;
+    } else if (badge) {
+      badge.remove();
+    }
+  }
+
+  // Header warning
+  const btnAlerts = document.getElementById('btnAlerts');
+  if (btnAlerts) {
+    if (totalLow > 0) {
+      btnAlerts.style.display = 'flex';
+      btnAlerts.title = `System Warning: ${totalLow} items are low in stock!`;
+    } else {
+      btnAlerts.style.display = 'none';
+    }
+  }
+};
+
+window.showLowStockAlertsModal = function() {
+  const thresh = parseInt(APP.settings.lowStockThreshold) || 5;
+  const lowProd = (APP.products || []).filter(p => (p.stock || 0) <= thresh);
+  const lowMat = (APP.materials || []).filter(m => m.trackStock !== false && (m.stock || 0) <= thresh);
+
+  const bodyHtml = `
+    <div style="font-size: 0.95rem; line-height: 1.5;">
+      <p style="margin-bottom: 16px; color: var(--text-muted);">
+        The following items have stock levels at or below the threshold of <strong>${thresh}</strong>. Please restock soon.
+      </p>
+      
+      ${lowProd.length > 0 ? `
+        <div style="margin-bottom: 20px;">
+          <h3 style="color: var(--accent); border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 6px; margin-bottom: 10px;">Products</h3>
+          <div style="display: flex; flex-direction: column; gap: 8px; max-height: 180px; overflow-y: auto; padding-right: 4px;">
+            ${lowProd.map(p => `
+              <div style="display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; background: rgba(255,255,255,0.03); border-radius: 6px; border-left: 3px solid var(--error);">
+                <span class="fw-700">${getProductName(p)}</span>
+                <span class="badge badge-cancelled" style="font-weight: 700; font-size: 0.85rem;">${p.stock || 0} left</span>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+      ` : ''}
+
+      ${lowMat.length > 0 ? `
+        <div>
+          <h3 style="color: var(--accent); border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 6px; margin-bottom: 10px;">Materials</h3>
+          <div style="display: flex; flex-direction: column; gap: 8px; max-height: 180px; overflow-y: auto; padding-right: 4px;">
+            ${lowMat.map(m => `
+              <div style="display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; background: rgba(255,255,255,0.03); border-radius: 6px; border-left: 3px solid var(--pending);">
+                <span class="fw-700">${m.name}</span>
+                <span class="badge badge-pending" style="font-weight: 700; font-size: 0.85rem;">${m.stock || 0} ${m.unitType||''} left</span>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+      ` : ''}
+    </div>
+  `;
+
+  const footerHtml = `<button class="btn btn-gold" onclick="closeModal('lowStockAlertModal')">Acknowledge</button>`;
+
+  const modals = document.getElementById('modalContainer');
+  if (modals) {
+    const existing = document.getElementById('lowStockAlertModal');
+    if (existing) existing.remove();
+    modals.insertAdjacentHTML('beforeend', renderModal('lowStockAlertModal', 'Low Stock Warning', bodyHtml, footerHtml));
+    openModal('lowStockAlertModal');
+  }
+};
 
 
 // ── Auth UI Helpers ──
@@ -323,6 +430,19 @@ async function bootstrapApp() {
 
 // ── Init ──
 async function initApp() {
+  // Initialize confirm modal early so it can be used on setup/login screens
+  const modals = document.getElementById('modalContainer');
+  if (modals && !document.getElementById('confirmModal')) {
+    modals.innerHTML = renderModal('confirmModal', 'Confirm', `<p id="confirmMsg"></p>`,
+      `<button class="btn btn-outline" onclick="closeModal('confirmModal')">${t('cancel')}</button>
+       <button class="btn btn-danger" id="confirmYes">${t('delete')}</button>`, 'confirm-dialog sm');
+
+    document.getElementById('confirmYes').addEventListener('click', () => {
+      closeModal('confirmModal');
+      if (_confirmCb) { _confirmCb(); _confirmCb = null; }
+    });
+  }
+
   // Theme Toggle
   const themeToggle = document.getElementById('btnThemeToggle');
   const sunIcon = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>`;
@@ -352,6 +472,9 @@ async function initApp() {
   document.getElementById('btnMin').addEventListener('click', () => window.api.minimize());
   document.getElementById('btnMax').addEventListener('click', () => window.api.maximize());
   document.getElementById('btnClose').addEventListener('click', () => window.api.close());
+  document.getElementById('btnAlerts')?.addEventListener('click', () => {
+    window.showLowStockAlertsModal();
+  });
 
   // Setup form submit listener
   document.getElementById('setupForm').addEventListener('submit', async (e) => {
@@ -429,6 +552,53 @@ async function initApp() {
   // Check connection & login status on startup
   await checkAndHandleAuth();
 }
+
+window.recalculateAllProductPrices = async function() {
+  try {
+    const settings = await window.api.getSettings() || {};
+    const profitPct = parseFloat(settings.profitPercentage) || 0;
+    const estSales = parseInt(settings.estimatedMonthlySales) || 1;
+    
+    const expenses = await window.api.getExpenses() || [];
+    const recurringExpenses = expenses.filter(e => e.recurring === true || e.recurring === 'true');
+    const totalRecurringUSD = recurringExpenses.reduce((s, e) => {
+      const amt = parseFloat(e.amount) || 0;
+      const eCur = e.currency || 'USD';
+      if (eCur === 'USD') return s + amt;
+      const currObj = (settings.currencies || []).find(c => c.code === eCur);
+      const rate = currObj ? currObj.rate : 1;
+      return s + (amt / rate);
+    }, 0);
+    
+    const monthlyFeePerProduct = totalRecurringUSD / (estSales || 1);
+    
+    const products = await window.api.getProducts() || [];
+    for (const p of products) {
+      const cogs = parseFloat(p.costOfGoodsSold) || 0;
+      const additional = parseFloat(p.additional) || 0;
+      const calculatedPrice = cogs * (1 + profitPct / 100) + additional + monthlyFeePerProduct;
+      
+      p.monthlyFee = monthlyFeePerProduct;
+      p.price = parseFloat(calculatedPrice.toFixed(2)) || 0;
+      
+      await window.api.updateProduct(p);
+    }
+    
+    APP.products = await window.api.getProducts() || [];
+    APP.settings = settings;
+    APP.expenses = expenses;
+    return true;
+  } catch (err) {
+    console.error('Error recalculating product prices:', err);
+    return false;
+  }
+};
+
+window.getHeaderArrow = function(currentSort, ascVal, descVal) {
+  if (currentSort === ascVal) return ' <span style="font-size: 0.7rem; color: var(--gold); vertical-align: middle;">▲</span>';
+  if (currentSort === descVal) return ' <span style="font-size: 0.7rem; color: var(--gold); vertical-align: middle;">▼</span>';
+  return ' <span style="font-size: 0.7rem; opacity: 0.2; vertical-align: middle;">▲</span>';
+};
 
 document.addEventListener('DOMContentLoaded', initApp);
 

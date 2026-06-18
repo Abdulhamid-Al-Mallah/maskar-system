@@ -100,6 +100,28 @@ async function connectToMongo(uri) {
     mongoClient = client;
     db = client.db(dbName);
     console.log(`Connected to MongoDB database: ${dbName}`);
+
+    // Startup migration: convert non-USD expenses to USD and update their currency to 'USD'
+    try {
+      const expenses = await db.collection('expenses').find({}).toArray();
+      const settings = await db.collection('settings').findOne({});
+      const currencies = settings?.currencies || [];
+      for (const e of expenses) {
+        if (e.currency && e.currency !== 'USD') {
+          const amt = parseFloat(e.amount) || 0;
+          const currObj = currencies.find(c => c.code === e.currency);
+          const rate = currObj ? currObj.rate : 1;
+          const usdAmount = amt / (rate || 1);
+          await db.collection('expenses').updateOne(
+            { id: e.id },
+            { $set: { amount: usdAmount, currency: 'USD' } }
+          );
+        }
+      }
+    } catch (migErr) {
+      console.error('Failed to run expense currency migration:', migErr);
+    }
+
     return { success: true };
   } catch (e) {
     console.error('MongoDB Connection Error:', e);
@@ -326,7 +348,14 @@ ipcMain.handle('db:products:update', async (_, updated) => {
 ipcMain.handle('db:products:delete', async (_, id) => {
   checkAuth();
   try {
+    const orderCount = await db.collection('orders').countDocuments({ "items.productId": id });
+    if (orderCount > 0) {
+      const orders = await db.collection('orders').find({ "items.productId": id }).toArray();
+      const orderNums = orders.map(o => o.orderNumber).join(', ');
+      return { success: false, error: `Cannot delete product. It is used in order(s): ${orderNums}` };
+    }
     await db.collection('products').deleteOne({ id });
+    await db.collection('formulas').deleteMany({ productId: id });
     return { success: true };
   } catch (e) {
     return { success: false, error: e.message };
@@ -350,6 +379,25 @@ ipcMain.handle('db:products:updateStock', async (_, id, stockDelta) => {
 // ---------------------------------------------------------------------------
 // IPC: Orders CRUD
 // ---------------------------------------------------------------------------
+async function adjustMaterialStock(productId, productQuantity, multiplier) {
+  try {
+    const formulas = await db.collection('formulas').find({ productId }).toArray();
+    for (const f of formulas) {
+      const mat = await db.collection('materials').findOne({ id: f.materialId });
+      if (mat && mat.trackStock === false) {
+        continue;
+      }
+      const qtyToAdjust = (parseFloat(f.quantity) || 0) * productQuantity * multiplier;
+      await db.collection('materials').updateOne(
+        { id: f.materialId },
+        { $inc: { stock: qtyToAdjust } }
+      );
+    }
+  } catch (e) {
+    console.error(`Failed to adjust material stock for product ${productId}:`, e);
+  }
+}
+
 ipcMain.handle('db:orders:getAll', async () => {
   checkAuth();
   return await getCollectionData('orders');
@@ -383,6 +431,8 @@ ipcMain.handle('db:orders:create', async (_, order) => {
           { id: item.productId },
           { $inc: { stock: -(item.quantity || 0) } }
         );
+        // Reduce material stock
+        await adjustMaterialStock(item.productId, item.quantity || 0, -1);
       }
     }
 
@@ -444,6 +494,8 @@ ipcMain.handle('db:orders:update', async (_, updated) => {
           { id: item.productId },
           { $inc: { stock: (item.quantity || 0) } }
         );
+        // Restore material stock
+        await adjustMaterialStock(item.productId, item.quantity || 0, 1);
       }
     }
     if (updated.items && Array.isArray(updated.items)) {
@@ -452,6 +504,8 @@ ipcMain.handle('db:orders:update', async (_, updated) => {
           { id: item.productId },
           { $inc: { stock: -(item.quantity || 0) } }
         );
+        // Reduce material stock
+        await adjustMaterialStock(item.productId, item.quantity || 0, -1);
       }
     }
 
@@ -474,6 +528,8 @@ ipcMain.handle('db:orders:delete', async (_, id) => {
           { id: item.productId },
           { $inc: { stock: (item.quantity || 0) } }
         );
+        // Restore material stock
+        await adjustMaterialStock(item.productId, item.quantity || 0, 1);
       }
     }
 
@@ -518,6 +574,12 @@ ipcMain.handle('db:customers:update', async (_, updated) => {
 ipcMain.handle('db:customers:delete', async (_, id) => {
   checkAuth();
   try {
+    const orderCount = await db.collection('orders').countDocuments({ customerId: id });
+    if (orderCount > 0) {
+      const orders = await db.collection('orders').find({ customerId: id }).toArray();
+      const orderNums = orders.map(o => o.orderNumber).join(', ');
+      return { success: false, error: `Cannot delete customer. They have associated order(s): ${orderNums}` };
+    }
     await db.collection('customers').deleteOne({ id });
     return { success: true };
   } catch (e) {
@@ -592,6 +654,14 @@ ipcMain.handle('db:materials:save', async (_, material) => {
 ipcMain.handle('db:materials:delete', async (_, id) => {
   checkAuth();
   try {
+    const formulaCount = await db.collection('formulas').countDocuments({ materialId: id });
+    if (formulaCount > 0) {
+      const formulas = await db.collection('formulas').find({ materialId: id }).toArray();
+      const productIds = [...new Set(formulas.map(f => f.productId))];
+      const products = await db.collection('products').find({ id: { $in: productIds } }).toArray();
+      const productNames = products.map(p => p.nameEn || p.nameAr || p.nameTr || 'Unnamed Product').join(', ');
+      return { success: false, error: `Cannot delete material. It is used in formula(s) of product(s): ${productNames}` };
+    }
     await db.collection('materials').deleteOne({ id });
     return { success: true };
   } catch (e) {
@@ -754,12 +824,15 @@ ipcMain.handle('print:invoice', async (_, { bodyHtml, defaultName }) => {
 
     const fullHtml = `<!DOCTYPE html><html><head><meta charset="UTF-8"><style>${cssContent}</style></head><body>${bodyHtml}</body></html>`;
 
+    const tempPath = path.join(app.getPath('temp'), `print_invoice_${Date.now()}.html`);
+    fs.writeFileSync(tempPath, fullHtml, 'utf-8');
+
     const printWindow = new BrowserWindow({
       show: false,
       webPreferences: { nodeIntegration: false, contextIsolation: true }
     });
 
-    await printWindow.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(fullHtml)}`);
+    await printWindow.loadFile(tempPath);
 
     const pdfBuffer = await printWindow.webContents.printToPDF({
       margins: { marginType: 'none' },
@@ -770,6 +843,13 @@ ipcMain.handle('print:invoice', async (_, { bodyHtml, defaultName }) => {
 
     fs.writeFileSync(filePath, pdfBuffer);
     printWindow.close();
+
+    try {
+      fs.unlinkSync(tempPath);
+    } catch (err) {
+      console.error('Failed to delete temp print file:', err);
+    }
+
     return { success: true, path: filePath };
   } catch (e) {
     console.error('PDF generation failed:', e);

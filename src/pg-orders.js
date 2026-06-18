@@ -1,7 +1,20 @@
 /* pg-orders.js */
 let _ordPage = 1,
    _ordSearch = "",
-   _ordStatus = "ALL";
+   _ordStatus = "ALL",
+   _ordSortBy = "date_desc";
+
+window.toggleOrdSort = function(col) {
+  if (col === 'no') {
+     _ordSortBy = (_ordSortBy === 'no_asc') ? 'no_desc' : 'no_asc';
+  } else if (col === 'date') {
+     _ordSortBy = (_ordSortBy === 'date_asc') ? 'date_desc' : 'date_asc';
+  } else if (col === 'total') {
+     _ordSortBy = (_ordSortBy === 'total_asc') ? 'total_desc' : 'total_asc';
+  }
+  _ordPage = 1;
+  render_orders();
+};
 let _cart = [];
 
 window.render_orders = async function () {
@@ -19,7 +32,22 @@ window.render_orders = async function () {
       }
       return true;
    });
-   filtered.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
+
+   // Sorting
+   if (_ordSortBy === 'date_desc') {
+      filtered.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
+   } else if (_ordSortBy === 'date_asc') {
+      filtered.sort((a, b) => new Date(a.createdAt || 0) - new Date(b.createdAt || 0));
+   } else if (_ordSortBy === 'no_desc') {
+      filtered.sort((a, b) => (b.orderNumber || '').localeCompare(a.orderNumber || ''));
+   } else if (_ordSortBy === 'no_asc') {
+      filtered.sort((a, b) => (a.orderNumber || '').localeCompare(b.orderNumber || ''));
+   } else if (_ordSortBy === 'total_desc') {
+      filtered.sort((a, b) => (parseFloat(b.total) || 0) - (parseFloat(a.total) || 0));
+   } else if (_ordSortBy === 'total_asc') {
+      filtered.sort((a, b) => (parseFloat(a.total) || 0) - (parseFloat(b.total) || 0));
+   }
+
    const pgData = paginate(filtered, _ordPage);
    _ordPage = pgData.page;
 
@@ -43,12 +71,16 @@ window.render_orders = async function () {
             <option value="delivered" ${_ordStatus === "delivered" ? "selected" : ""}>Delivered</option>
             <option value="cancelled" ${_ordStatus === "cancelled" ? "selected" : ""}>Cancelled</option>
           </select>
-        </div>
       </div>
       <div class="table-container">
         <table class="data-table"><thead><tr>
-          <th>${t("orderNo", "order")}</th><th>${t("date")}</th><th>${t("customer")}</th>
-          <th>${t("total")}</th><th>${t("payment", "order")}</th><th>${t("status")}</th><th class="text-right">${t("actions")}</th>
+          <th style="cursor:pointer; user-select:none;" onclick="window.toggleOrdSort('no')">${t("orderNo", "order")}${getHeaderArrow(_ordSortBy, 'no_asc', 'no_desc')}</th>
+          <th style="cursor:pointer; user-select:none;" onclick="window.toggleOrdSort('date')">${t("date")}${getHeaderArrow(_ordSortBy, 'date_asc', 'date_desc')}</th>
+          <th>${t("customer")}</th>
+          <th style="cursor:pointer; user-select:none;" onclick="window.toggleOrdSort('total')">${t("total")}${getHeaderArrow(_ordSortBy, 'total_asc', 'total_desc')}</th>
+          <th>${t("payment", "order")}</th>
+          <th>${t("status")}</th>
+          <th class="text-right">${t("actions")}</th>
         </tr></thead><tbody>
         ${
            pgData.items.length
@@ -541,56 +573,52 @@ window.printOrder = async function (id) {
       </table>
 
       <h3>Ürün Detayları</h3>
-      <div style="display: block; width: fit-content;">
-        <table style="width: auto !important;">
-          <thead>
-            <tr>
-              <th style="white-space: nowrap;">Ürün / Hizmet</th>
-              <th style="text-align: center; width: 1%; white-space: nowrap;">Adet</th>
-              <th style="text-align: right; width: 1%; white-space: nowrap;">Birim Fiyat</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${itemsHtml}
-          </tbody>
-        </table>
-      </div>
+      <table style="width: 100% !important;">
+        <thead>
+          <tr>
+            <th style="white-space: nowrap;">Ürün / Hizmet</th>
+            <th style="text-align: center; width: 15%; white-space: nowrap;">Adet</th>
+            <th style="text-align: right; width: 25%; white-space: nowrap;">Birim Fiyat</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${itemsHtml}
+        </tbody>
+      </table>
 
       <h3>Toplam Tutar</h3>
-      <div style="display: block; width: fit-content;">
-        <table style="width: auto !important;">
-          <thead>
-            <tr>
-              <th style="white-space: nowrap;">Açıklama</th>
-              <th style="text-align: right; width: 1%; white-space: nowrap;">Tutar</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td style="white-space: nowrap;"><strong>Ara toplam</strong></td>
-              <td style="text-align: right; white-space: nowrap;">${formatBillCost(o.subtotal || 0)}</td>
-            </tr>
-            <tr>
-              <td style="white-space: nowrap;"><strong>Kargo ücreti</strong></td>
-              <td style="text-align: right; white-space: nowrap;">${formatBillCost(o.shipping || 0)}</td>
-            </tr>
-            ${
-               o.discount
-                  ? `
-            <tr>
-              <td style="white-space: nowrap;"><strong>İndirim</strong></td>
-              <td style="text-align: right; white-space: nowrap;">-${formatBillCost(o.discount)}</td>
-            </tr>
-            `
-                  : ""
-            }
-            <tr>
-              <td style="white-space: nowrap;"><strong>Genel toplam</strong></td>
-              <td style="text-align: right; white-space: nowrap;"><strong>${formatBillCost(o.total || 0)}</strong></td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
+      <table style="width: 100% !important;">
+        <thead>
+          <tr>
+            <th style="white-space: nowrap;">Açıklama</th>
+            <th style="text-align: right; width: 25%; white-space: nowrap;">Tutar</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td style="white-space: nowrap;"><strong>Ara toplam</strong></td>
+            <td style="text-align: right; white-space: nowrap;">${formatBillCost(o.subtotal || 0)}</td>
+          </tr>
+          <tr>
+            <td style="white-space: nowrap;"><strong>Kargo ücreti</strong></td>
+            <td style="text-align: right; white-space: nowrap;">${formatBillCost(o.shipping || 0)}</td>
+          </tr>
+          ${
+             o.discount
+                ? `
+          <tr>
+            <td style="white-space: nowrap;"><strong>İndirim</strong></td>
+            <td style="text-align: right; white-space: nowrap;">-${formatBillCost(o.discount)}</td>
+          </tr>
+          `
+                : ""
+          }
+          <tr>
+            <td style="white-space: nowrap;"><strong>Genel toplam</strong></td>
+            <td style="text-align: right; white-space: nowrap;"><strong>${formatBillCost(o.total || 0)}</strong></td>
+          </tr>
+        </tbody>
+      </table>
     </div>`;
 
    const res = await window.api.printInvoice({ bodyHtml, defaultName: `Makbuz_${o.orderNumber || "order"}.pdf` });

@@ -11,7 +11,9 @@ window.render_dashboard = async function() {
   const delivered = orders.filter(o => o.status === 'delivered');
   const revenue = delivered.reduce((s, o) => s + (parseFloat(o.total) || 0), 0);
   const pending = orders.filter(o => o.status === 'pending').length;
-  const lowStock = products.filter(p => (p.stock || 0) <= thresh).length;
+  const lowStockProductsList = products.filter(p => (p.stock || 0) <= thresh);
+  const lowStockMaterialsList = APP.materials.filter(m => m.trackStock !== false && (m.stock || 0) <= thresh);
+  const totalLowStock = lowStockProductsList.length + lowStockMaterialsList.length;
 
   // Top sellers
   const salesMap = {};
@@ -53,10 +55,13 @@ window.render_dashboard = async function() {
 
   pg.innerHTML = `
     <div class="page-header"><h1>${t('dashboard','nav')}</h1></div>
+    
+
+
     <div class="stats-grid">
       <div class="stat-card"><div class="stat-label">${t('Revenue','dashboard')}</div><div class="stat-value">${fmt(revenue, 'USD')}</div></div>
       <div class="stat-card"><div class="stat-label">${t('Pending','dashboard')}</div><div class="stat-value">${pending}</div></div>
-      <div class="stat-card"><div class="stat-label">${t('Low Stock','dashboard')}</div><div class="stat-value">${lowStock}</div></div>
+      <div class="stat-card"><div class="stat-label">${t('Low Stock','dashboard')}</div><div class="stat-value">${totalLowStock}</div></div>
       <div class="stat-card"><div class="stat-label">${t('Customers','dashboard')}</div><div class="stat-value">${customers.length}</div></div>
     </div>
     <div class="dash-grid">

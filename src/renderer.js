@@ -13,12 +13,14 @@ function buildPages() {
   });
 
   // Confirm modal
-  modals.innerHTML = renderModal('confirmModal', 'Confirm', `<p id="confirmMsg"></p>`,
-    `<button class="btn btn-outline" onclick="closeModal('confirmModal')">${t('cancel')}</button>
-     <button class="btn btn-danger" id="confirmYes">${t('delete')}</button>`, 'confirm-dialog sm');
+  if (!document.getElementById('confirmModal')) {
+    modals.innerHTML = renderModal('confirmModal', 'Confirm', `<p id="confirmMsg"></p>`,
+      `<button class="btn btn-outline" onclick="closeModal('confirmModal')">${t('cancel')}</button>
+       <button class="btn btn-danger" id="confirmYes">${t('delete')}</button>`, 'confirm-dialog sm');
 
-  document.getElementById('confirmYes').addEventListener('click', () => {
-    closeModal('confirmModal');
-    if (_confirmCb) { _confirmCb(); _confirmCb = null; }
-  });
+    document.getElementById('confirmYes').addEventListener('click', () => {
+      closeModal('confirmModal');
+      if (_confirmCb) { _confirmCb(); _confirmCb = null; }
+    });
+  }
 }

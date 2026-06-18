@@ -782,3 +782,80 @@ input[type="checkbox"] {
   border-radius: 4px;
   font-family: monospace;
 }
+
+/* Drag and Drop styles for Formula Editor */
+.cart-item.formula-row {
+  grid-template-columns: auto 2fr 0.8fr 0.8fr auto;
+  transition: all 0.2s ease;
+}
+.cart-item.formula-row.dragging {
+  opacity: 0.4;
+  border: 1px dashed var(--gold);
+}
+.cart-item.formula-row.drag-over {
+  border-top: 2px solid var(--gold);
+  background: rgba(212, 175, 55, 0.08);
+}
+.drag-handle {
+  cursor: grab;
+  display: flex;
+  align-items: center;
+  padding: 0 4px;
+  color: var(--text-muted);
+}
+.drag-handle:active {
+  cursor: grabbing;
+  color: var(--gold);
+}
+
+/* ─── Custom Toggle Switch ─── */
+.switch-container {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  user-select: none;
+}
+.switch-wrapper {
+  position: relative;
+  display: inline-block;
+  width: 44px;
+  height: 22px;
+}
+.switch-wrapper input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+  position: absolute;
+}
+.switch-slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background-color: rgba(255, 255, 255, 0.08);
+  transition: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  border-radius: 34px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+.switch-slider:before {
+  position: absolute;
+  content: "";
+  height: 16px;
+  width: 16px;
+  left: 2px;
+  bottom: 2px;
+  background-color: var(--text-secondary);
+  transition: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  border-radius: 50%;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.4);
+}
+.switch-wrapper input:checked + .switch-slider {
+  background-color: var(--gold-muted);
+  border-color: var(--gold);
+}
+.switch-wrapper input:checked + .switch-slider:before {
+  transform: translateX(22px);
+  background-color: var(--gold);
+}
+
+

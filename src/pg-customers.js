@@ -1,5 +1,17 @@
 /* pg-customers.js */
-let _custPage = 1, _custSearch = '';
+let _custPage = 1, _custSearch = '', _custSortBy = 'name_asc';
+
+window.toggleCustSort = function(col) {
+  if (col === 'name') {
+    _custSortBy = (_custSortBy === 'name_asc') ? 'name_desc' : 'name_asc';
+  } else if (col === 'orders') {
+    _custSortBy = (_custSortBy === 'orders_asc') ? 'orders_desc' : 'orders_asc';
+  } else if (col === 'spent') {
+    _custSortBy = (_custSortBy === 'spent_asc') ? 'spent_desc' : 'spent_asc';
+  }
+  _custPage = 1;
+  render_customers();
+};
 let _custOrdersPage = 1, _custOrdersCustId = '';
 
 window.render_customers = async function() {
@@ -14,6 +26,29 @@ window.render_customers = async function() {
     const q = _custSearch.toLowerCase();
     return (c.name||'').toLowerCase().includes(q) || (c.phone||'').includes(q) || (c.email||'').toLowerCase().includes(q);
   });
+
+  // Helper functions for spent and orders count sorting
+  const getCustStats = (c) => {
+    const custOrders = APP.orders.filter(o => o.customerId === c.id);
+    const spent = custOrders.reduce((s,o) => s + (parseFloat(o.total)||0), 0);
+    return { count: custOrders.length, spent };
+  };
+
+  // Sorting
+  if (_custSortBy === 'name_asc') {
+    filtered.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+  } else if (_custSortBy === 'name_desc') {
+    filtered.sort((a, b) => (b.name || '').localeCompare(a.name || ''));
+  } else if (_custSortBy === 'orders_desc') {
+    filtered.sort((a, b) => getCustStats(b).count - getCustStats(a).count);
+  } else if (_custSortBy === 'orders_asc') {
+    filtered.sort((a, b) => getCustStats(a).count - getCustStats(b).count);
+  } else if (_custSortBy === 'spent_desc') {
+    filtered.sort((a, b) => getCustStats(b).spent - getCustStats(a).spent);
+  } else if (_custSortBy === 'spent_asc') {
+    filtered.sort((a, b) => getCustStats(a).spent - getCustStats(b).spent);
+  }
+
   const pgData = paginate(filtered, _custPage);
   _custPage = pgData.page;
 
@@ -30,7 +65,12 @@ window.render_customers = async function() {
       </div>
       <div class="table-container">
         <table class="data-table"><thead><tr>
-          <th>${t('name')}</th><th>${t('phone')}</th><th>${t('city')}</th><th>Orders</th><th>Spent</th><th class="text-right">${t('actions')}</th>
+          <th style="cursor:pointer; user-select:none;" onclick="window.toggleCustSort('name')">${t('name')}${getHeaderArrow(_custSortBy, 'name_asc', 'name_desc')}</th>
+          <th>${t('phone')}</th>
+          <th>${t('city')}</th>
+          <th style="cursor:pointer; user-select:none;" onclick="window.toggleCustSort('orders')">Orders${getHeaderArrow(_custSortBy, 'orders_asc', 'orders_desc')}</th>
+          <th style="cursor:pointer; user-select:none;" onclick="window.toggleCustSort('spent')">Spent${getHeaderArrow(_custSortBy, 'spent_asc', 'spent_desc')}</th>
+          <th class="text-right">${t('actions')}</th>
         </tr></thead><tbody>
         ${pgData.items.length ? pgData.items.map(c => {
           const custOrders = APP.orders.filter(o => o.customerId === c.id);
@@ -53,6 +93,7 @@ window.render_customers = async function() {
       ${renderPagination(pgData)}
     </div>`;
 
+  // Search listener
   const searchInput = document.getElementById('custSearch');
   if (searchInput) {
     searchInput.addEventListener('input', async e => {
@@ -67,6 +108,9 @@ window.render_customers = async function() {
       }
     });
   }
+
+
+
   pg.querySelectorAll('.page-btn[data-p]').forEach(b => b.addEventListener('click', () => { _custPage = parseInt(b.dataset.p); render_customers(); }));
 
   if (!document.getElementById('custModal')) {
