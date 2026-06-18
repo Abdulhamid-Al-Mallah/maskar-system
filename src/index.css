@@ -594,3 +594,125 @@ input[type="checkbox"] {
   font-size: 0.8rem;
 }
 
+
+/* ─── Auth & Setup Overlay ─── */
+.auth-overlay {
+  position: fixed;
+  top: var(--titlebar-height);
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: radial-gradient(circle at center, #161616 0%, #0a0a0a 100%);
+  z-index: 999;
+  display: none; /* Controlled by JS */
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  overflow-y: auto;
+}
+
+.auth-overlay.active {
+  display: flex;
+}
+
+.auth-card {
+  background: rgba(18, 18, 18, 0.75);
+  border: 1px solid var(--border-gold);
+  border-radius: 16px;
+  padding: 40px;
+  width: 100%;
+  max-width: 440px;
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.8), 0 0 50px rgba(212, 168, 67, 0.04);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  animation: authCardFadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+@keyframes authCardFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.auth-logo {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 12px;
+  color: var(--gold);
+}
+
+.auth-logo svg {
+  color: var(--gold);
+  filter: drop-shadow(0 0 8px var(--gold-glow));
+}
+
+.auth-logo h1 {
+  font-size: 1.4rem;
+  font-weight: 800;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+}
+
+.auth-logo p {
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+}
+
+.auth-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.auth-form .form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.auth-form label {
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  color: var(--text-muted);
+}
+
+.auth-form input {
+  padding: 12px 14px;
+  background: rgba(26, 26, 26, 0.5);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 0.9rem;
+  color: var(--text-primary);
+  transition: all 0.2s ease;
+}
+
+.auth-form input:focus {
+  border-color: var(--gold);
+  box-shadow: 0 0 0 3px var(--gold-glow);
+  background: rgba(26, 26, 26, 0.8);
+}
+
+.auth-form .btn-gold {
+  margin-top: 12px;
+  padding: 12px 20px;
+  font-size: 0.9rem;
+}
+
+.auth-form code {
+  color: var(--gold);
+  background: rgba(212, 168, 67, 0.1);
+  padding: 2px 4px;
+  border-radius: 4px;
+  font-family: monospace;
+}

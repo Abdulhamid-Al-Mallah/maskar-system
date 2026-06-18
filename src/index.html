@@ -31,6 +31,63 @@
     <!-- Main Content -->
     <main class="main-content" id="mainContent"></main>
   </div>
+  
+  <!-- Auth & Setup Overlay -->
+  <div class="auth-overlay" id="authOverlay">
+    <!-- Setup Screen -->
+    <div class="auth-card" id="setupCard" style="display: none;">
+      <div class="auth-logo">
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+        <h1>DATABASE SETUP</h1>
+        <p>Connect the manager to your MongoDB Database</p>
+      </div>
+      <form id="setupForm" class="auth-form">
+        <div class="form-group">
+          <label for="setupUri">MongoDB Connection URI</label>
+          <input type="text" id="setupUri" placeholder="mongodb+srv://username:password@cluster.mongodb.net/maskar" required autocomplete="off">
+          <span class="text-muted" style="font-size: 0.75rem; margin-top: 4px; display: block;">
+            Make sure to include a database name at the end (e.g. <code>.../maskar</code>).
+          </span>
+        </div>
+        <div class="form-group">
+          <label for="setupAdminUser">Admin Username</label>
+          <input type="text" id="setupAdminUser" placeholder="admin" value="admin" required>
+        </div>
+        <div class="form-group">
+          <label for="setupAdminPass">Admin Password</label>
+          <input type="password" id="setupAdminPass" placeholder="Create a secure password" required>
+        </div>
+        <button type="submit" class="btn btn-gold" id="btnConnect" style="width: 100%; margin-top: 10px;">
+          <span id="btnConnectText">Save & Connect</span>
+        </button>
+      </form>
+    </div>
+
+    <!-- Login Screen -->
+    <div class="auth-card" id="loginCard" style="display: none;">
+      <div class="auth-logo">
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+        <h1>SYSTEM LOGIN</h1>
+        <p>Enter your credentials to access the manager</p>
+      </div>
+      <form id="loginForm" class="auth-form">
+        <div class="form-group">
+          <label for="loginUser">Username</label>
+          <input type="text" id="loginUser" required autocomplete="username">
+        </div>
+        <div class="form-group">
+          <label for="loginPass">Password</label>
+          <input type="password" id="loginPass" required autocomplete="current-password">
+        </div>
+        <div class="flex-between" style="width: 100%; margin-top: 12px; margin-bottom: 8px;">
+          <button type="button" class="btn-link" id="btnResetConnection" style="background: none; border: none; color: var(--text-muted); cursor: pointer; font-size: 0.8rem; text-decoration: underline;">Reset Database Connection</button>
+        </div>
+        <button type="submit" class="btn btn-gold" id="btnLogin" style="width: 100%; margin-top: 6px;">
+          <span id="btnLoginText">Sign In</span>
+        </button>
+      </form>
+    </div>
+  </div>
 
   <!-- Toast Container -->
   <div class="toast-container" id="toastContainer"></div>

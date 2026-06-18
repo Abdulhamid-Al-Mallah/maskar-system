@@ -275,6 +275,52 @@ async function loadAllData() {
   APP.lang = 'en';
 }
 
+
+// ── Auth UI Helpers ──
+async function showSetupView() {
+  document.getElementById('authOverlay').classList.add('active');
+  document.getElementById('setupCard').style.display = 'block';
+  document.getElementById('loginCard').style.display = 'none';
+}
+
+async function showLoginView() {
+  document.getElementById('authOverlay').classList.add('active');
+  document.getElementById('setupCard').style.display = 'none';
+  document.getElementById('loginCard').style.display = 'block';
+}
+
+function hideAuthOverlay() {
+  document.getElementById('authOverlay').classList.remove('active');
+  document.getElementById('setupCard').style.display = 'none';
+  document.getElementById('loginCard').style.display = 'none';
+}
+
+async function checkAndHandleAuth() {
+  document.getElementById('loginPass').value = '';
+  try {
+    const status = await window.api.checkSetup();
+    if (status.setupRequired) {
+      if (status.error) {
+        showToast(status.error, 'error');
+      }
+      await showSetupView();
+    } else {
+      await showLoginView();
+    }
+  } catch (err) {
+    console.error('Check setup failed:', err);
+    showToast('Failed to contact database backend', 'error');
+    await showSetupView();
+  }
+}
+
+async function bootstrapApp() {
+  await loadAllData();
+  initNavigation();
+  buildPages();
+  navigateTo('dashboard');
+}
+
 // ── Init ──
 async function initApp() {
   // Window controls
@@ -282,12 +328,82 @@ async function initApp() {
   document.getElementById('btnMax').addEventListener('click', () => window.api.maximize());
   document.getElementById('btnClose').addEventListener('click', () => window.api.close());
 
+  // Setup form submit listener
+  document.getElementById('setupForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const uri = document.getElementById('setupUri').value.trim();
+    const adminUser = document.getElementById('setupAdminUser').value.trim();
+    const adminPass = document.getElementById('setupAdminPass').value;
+    
+    const btn = document.getElementById('btnConnect');
+    const btnText = document.getElementById('btnConnectText');
+    btn.disabled = true;
+    btnText.textContent = 'Connecting...';
+    
+    try {
+      const result = await window.api.setup({ uri, adminUser, adminPass });
+      if (result.success) {
+        showToast('Database configured successfully!', 'success');
+        
+        // Auto-login after setup
+        const loginRes = await window.api.login({ username: adminUser, password: adminPass });
+        if (loginRes.success) {
+          hideAuthOverlay();
+          await bootstrapApp();
+        } else {
+          await checkAndHandleAuth();
+        }
+      } else {
+        showToast(result.error || 'Failed to configure database', 'error');
+      }
+    } catch (err) {
+      showToast('An unexpected setup error occurred', 'error');
+    } finally {
+      btn.disabled = false;
+      btnText.textContent = 'Save & Connect';
+    }
+  });
 
+  // Login form submit listener
+  document.getElementById('loginForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const username = document.getElementById('loginUser').value.trim();
+    const password = document.getElementById('loginPass').value;
+    
+    const btn = document.getElementById('btnLogin');
+    const btnText = document.getElementById('btnLoginText');
+    btn.disabled = true;
+    btnText.textContent = 'Signing In...';
+    
+    try {
+      const result = await window.api.login({ username, password });
+      if (result.success) {
+        showToast('Login successful', 'success');
+        hideAuthOverlay();
+        await bootstrapApp();
+      } else {
+        showToast(result.error || 'Invalid credentials', 'error');
+      }
+    } catch (err) {
+      showToast('An unexpected login error occurred', 'error');
+    } finally {
+      btn.disabled = false;
+      btnText.textContent = 'Sign In';
+    }
+  });
 
-  await loadAllData();
-  initNavigation();
-  buildPages();
-  navigateTo('dashboard');
+  // Reset database connection link
+  document.getElementById('btnResetConnection').addEventListener('click', () => {
+    confirmAction('Are you sure you want to reset the database connection details? This will sign you out and prompt you to input a new MongoDB URI.', async () => {
+      await window.api.resetConnection();
+      showToast('Database connection reset.', 'info');
+      await checkAndHandleAuth();
+    });
+  });
+
+  // Check connection & login status on startup
+  await checkAndHandleAuth();
 }
 
 document.addEventListener('DOMContentLoaded', initApp);
+

@@ -49,5 +49,12 @@ contextBridge.exposeInMainWorld('api', {
   importData: () => ipcRenderer.invoke('import:data'),
 
   // Printing
-  printInvoice: (data) => ipcRenderer.invoke('print:invoice', data)
+  printInvoice: (data) => ipcRenderer.invoke('print:invoice', data),
+
+  // Authentication & Database Configuration
+  checkSetup: () => ipcRenderer.invoke('auth:checkSetup'),
+  setup: (data) => ipcRenderer.invoke('auth:setup', data),
+  login: (credentials) => ipcRenderer.invoke('auth:login', credentials),
+  resetConnection: () => ipcRenderer.invoke('auth:resetConnection')
 });
+

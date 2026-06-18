@@ -9,8 +9,11 @@
     "dist": "electron-builder"
   },
   "dependencies": {
+    "adm-zip": "^0.5.16",
     "archiver": "^7.0.1",
-    "adm-zip": "^0.5.16"
+    "bcryptjs": "^3.0.3",
+    "dotenv": "^17.4.2",
+    "mongodb": "^7.3.0"
   },
   "devDependencies": {
     "electron": "^30.0.0",
